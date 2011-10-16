@@ -19,6 +19,7 @@ else:
 from camera import Camera
 from robot import Robot
 from plane import Plane
+from solid import Solid
 
 class Scene :
 	def __init__( self , fovy , ratio , near , far , robot_files ) :
@@ -29,8 +30,8 @@ class Scene :
 
 		self.camera = Camera( ( 0 , 1 , -5 ) , ( 0 , 0 , 0 ) , ( 0 , 1 , 0 ) )
 		self.plane  = Plane( (2,2) )
-
-		self.robot = Robot( robot_files )
+		self.solid  = Solid( (1,1,1) , (10,10) )
+		self.robot  = Robot( robot_files )
 
 		self.x = 0.0
 
@@ -59,6 +60,8 @@ class Scene :
 		glEnable( GL_COLOR_MATERIAL )
 		glColorMaterial( GL_FRONT , GL_AMBIENT_AND_DIFFUSE )
 
+		self.solid.gfx_init()
+
 	def draw( self ) :
 		self.time = timer()
 
@@ -72,8 +75,9 @@ class Scene :
 		self._draw_scene()
 
 		self.robot.update( dt )
+		self.solid.next_cut()
 
-		print dt
+#        print dt
 
 		self.x+=dt*.3
 
@@ -126,6 +130,7 @@ class Scene :
 		glDisable( GL_BLEND )
 
 		self.robot.draw()
+		self.solid.draw()
 
 	def _update_proj( self ) :
 		glMatrixMode(GL_PROJECTION)

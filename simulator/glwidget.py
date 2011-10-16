@@ -38,6 +38,8 @@ class GLDrawingArea(gtk.DrawingArea, gtk.gtkgl.Widget):
 		if not gldrawable.gl_begin(glcontext):
 			return
 
+		print 'realize'
+
 		# OpenGL end
 		gldrawable.gl_end()
 
@@ -53,6 +55,8 @@ class GLDrawingArea(gtk.DrawingArea, gtk.gtkgl.Widget):
 		# OpenGL begin
 		if not gldrawable.gl_begin(glcontext):
 			return False
+
+		print 'configure'
 
 		glViewport(0, 0, self.allocation.width, self.allocation.height)
 

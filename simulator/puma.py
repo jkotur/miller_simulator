@@ -40,7 +40,7 @@ class App(object):
 
 		self.drawing_area = GLDrawingArea(glconfig)
 		self.drawing_area.set_events( gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.BUTTON3_MOTION_MASK )
-		self.drawing_area.set_size_request(320,240)
+		self.drawing_area.set_size_request(640,480)
 
 		builder.get_object("vbox1").pack_start(self.drawing_area)
 
