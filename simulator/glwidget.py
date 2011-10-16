@@ -87,13 +87,20 @@ class GLDrawingArea(gtk.DrawingArea, gtk.gtkgl.Widget):
 		glMatrixMode(GL_MODELVIEW)
 		glLoadIdentity()
 
-		for p in self.todraw :
-			p.draw()
+		try :
+			for p in self.todraw :
+				p.draw()
 
-		if gldrawable.is_double_buffered():
-			gldrawable.swap_buffers()
-		else:
-			glFlush()
+			if gldrawable.is_double_buffered():
+				gldrawable.swap_buffers()
+			else:
+				glFlush()
+
+		except:
+			from traceback import print_exc
+			print_exc()
+			from os import _exit
+			_exit(0)
 
 		# OpenGL end
 		gldrawable.gl_end()
