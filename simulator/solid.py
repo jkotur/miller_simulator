@@ -87,10 +87,14 @@ class Solid :
 
 	def gen_gdata( self ) :
 		if not self.gdata :
-			self.gdata = glGenBuffers(1)
+			self.gdata , self.normals = glGenBuffers(2)
 
 		glBindBuffer( GL_ARRAY_BUFFER , self.gdata )
 		glBufferData( GL_ARRAY_BUFFER , self.get_buff_bytes() , self.hdata , GL_STREAM_DRAW )
+		glBindBuffer( GL_ARRAY_BUFFER , 0 )
+
+		glBindBuffer( GL_ARRAY_BUFFER , self.normals )
+		glBufferData( GL_ARRAY_BUFFER , self.get_buff_bytes() , np.array( [0.0,1.0,0.0] * self.get_buff_len() , np.float32 )  , GL_STREAM_DRAW )
 		glBindBuffer( GL_ARRAY_BUFFER , 0 )
 
 	def gfx_init( self ) :
@@ -100,29 +104,40 @@ class Solid :
 	def draw( self ) :
 		if not self.gdata : return
 
-		glDisable( GL_CULL_FACE )
-		glEnable( GL_AUTO_NORMAL )
+#        glDisable( GL_CULL_FACE )
 
-		glColor4f( 1 , 1 , 1 , 1 )
+		glFrontFace(GL_CW);
+
+		glColor3f( .5 , .5 , .5 )
 
 		glEnableClientState( GL_VERTEX_ARRAY )
+		glEnableClientState( GL_NORMAL_ARRAY )
+#        glEnableClientState( GL_COLOR_ARRAY )
 
 		glBindBuffer( GL_ARRAY_BUFFER , self.gdata )
 		glVertexPointer( 3 , GL_FLOAT , 0 , None )
 		glBindBuffer( GL_ARRAY_BUFFER , 0 )
 
+		glBindBuffer( GL_ARRAY_BUFFER , self.normals )
+		glNormalPointer(     GL_FLOAT , 0 , None )
+#        glColorPointer( 3 , GL_FLOAT , 0 , None )
+		glBindBuffer( GL_ARRAY_BUFFER , 0 )
+
 		glDrawArrays( GL_TRIANGLES , 0 , self.get_triangles_count() )
 
 		glDisableClientState( GL_VERTEX_ARRAY )
+		glDisableClientState( GL_NORMAL_ARRAY )
+#        glDisableClientState( GL_COLOR_ARRAY )
 
-		glDisable( GL_AUTO_NORMAL )
-		glEnable( GL_CULL_FACE )
+#        glEnable(GL_LIGHTING)
+
+#        glEnable( GL_CULL_FACE )
 
 	def cuda_init( self ) :
 		mod = cuda_driver.module_from_file( 'solid_kernel.cubin' )
 
 		self.cut = mod.get_function("cut_x")
-		self.cut.prepare( "PPifiii" )
+		self.cut.prepare( "PPPifiii" )
 
 	def set_cut( self , pos ) :
 		self.pos = pos
@@ -139,7 +154,9 @@ class Solid :
 		block = (nx,ny,1)
 
 		cdata = cuda_gl.BufferObject( long( self.gdata ) )
-		cmapping = cdata.map()
+		norms = cuda_gl.BufferObject( long( self.normals) )
+		hmap = cdata.map()
+		nmap = norms.map()
 
 		dx = pos[0] - self.pos[0]
 		dz = pos[2] - self.pos[2]
@@ -173,7 +190,8 @@ class Solid :
 
 				print np.int32( x ) , y , np.int32( z / sx + .5 )
 				self.cut.prepared_call( grid , block ,
-						cmapping.device_ptr() ,
+						hmap.device_ptr() ,
+						nmap.device_ptr() ,
 						self.cdrill ,
 						np.int32(x) , np.float32(y) , np.int32( z / sy + .5 ) ,
 						np.int32(self.prec[0]) , np.int32(self.prec[1]) )
@@ -206,7 +224,8 @@ class Solid :
 
 				print np.int32( x ) , y , np.int32( z / sx + .5 )
 				self.cut.prepared_call( grid , block ,
-						cmapping.device_ptr() ,
+						hmap.device_ptr() ,
+						nmap.device_ptr() ,
 						self.cdrill ,
 						np.int32( x / sx + .5 ) , np.float32(y) , np.int32( z ) ,
 						np.int32(self.prec[0]) , np.int32(self.prec[1]) )
@@ -218,9 +237,10 @@ class Solid :
 
 		cuda_driver.Context.synchronize()
 
-		cmapping.unmap()
+		hmap.unmap()
+		nmap.unmap()
 		cdata.unregister()
-
+		norms.unregister()
 
 	def set_flat_drill( self , size ) :
 		sx , sy = self.get_scale()

@@ -31,7 +31,7 @@ class Scene :
 
 		self.camera = Camera( ( 100 , 250 , -150 ) , ( 100 , 200 , 100 ) , ( 0 , 1 , 0 ) )
 		self.plane  = Plane( (2,2) )
-		self.solid  = Solid( (-150,-150,-150) , (150,150,150) , (100,100) )
+		self.solid  = Solid( (-150,-150,-150) , (150,150,150) , (300,300) )
 		self.robot  = Robot( robot_files )
 		self.parser = Parser( 'data/t1.k16' , (150,150,150) )
 
@@ -63,7 +63,7 @@ class Scene :
 		glEnable( GL_NORMALIZE )
 		glEnable( GL_CULL_FACE )
 		glEnable( GL_COLOR_MATERIAL )
-		glColorMaterial( GL_FRONT , GL_AMBIENT_AND_DIFFUSE )
+		glColorMaterial( GL_FRONT_AND_BACK , GL_AMBIENT_AND_DIFFUSE )
 
 		self.solid.gfx_init()
 
@@ -94,6 +94,9 @@ class Scene :
 		nrm = np.dot( self.m , np.array( [      0        ,-1 ,      0        , 0 ] ) )
 
 		self.robot.resolve( pos , nrm )
+
+		glPushMatrix();
+		glScalef(100,100,100)
 
 		glClearStencil(0);
 		glClear(GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
@@ -136,6 +139,9 @@ class Scene :
 		glDisable( GL_BLEND )
 
 		self.robot.draw()
+		
+		glPopMatrix()
+
 		self.solid.draw()
 
 	def _update_proj( self ) :
@@ -149,7 +155,7 @@ class Scene :
 		glLightfv(GL_LIGHT0, GL_AMBIENT, [ 0.2 , 0.2 , 0.2 ] );
 		glLightfv(GL_LIGHT0, GL_DIFFUSE, [ 0.9 , 0.9 , 0.9 ] );
 		glLightfv(GL_LIGHT0, GL_SPECULAR,[ 0.3 , 0.3 , 0.3 ] );
-		glLightfv(GL_LIGHT0, GL_POSITION, [ 2 , 5 , 0 ] );
+		glLightfv(GL_LIGHT0, GL_POSITION, [ 0 , 200 , 0 ] );
 		glEnable(GL_LIGHT0); 
 						 
 	def set_fov( self , fov ) :
