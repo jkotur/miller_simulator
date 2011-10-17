@@ -39,7 +39,7 @@ class Robot( Drawable ) :
 			tr.rotation_matrix( rots[4] , (0,0,1) , (-1.72,.27,0) )
 		]
 
-		self.sparks.spawn( np.resize(pos,3) , norm )
+#        self.sparks.spawn( np.resize(pos,3) , norm )
 
 
 	def draw( self ) :
@@ -51,10 +51,11 @@ class Robot( Drawable ) :
 			self.meshes[i].draw()
 		glPopMatrix()
 
-		self.sparks.draw()
+#        self.sparks.draw()
 
 	def update( self , dt ) :
-		self.sparks.update( dt )
+#        self.sparks.update( dt )
+		pass
 
 	def inverse_kinematics( self , pos ,  normal ) :
 		l1 , l2 , l3 = .91 , .81 , .33

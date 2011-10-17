@@ -20,6 +20,7 @@ from camera import Camera
 from robot import Robot
 from plane import Plane
 from solid import Solid
+from parser import Parser
 
 class Scene :
 	def __init__( self , fovy , ratio , near , far , robot_files ) :
@@ -28,14 +29,18 @@ class Scene :
 		self.far = far
 		self.ratio = ratio
 
-		self.camera = Camera( ( 0 , 1 , -5 ) , ( 0 , 0 , 0 ) , ( 0 , 1 , 0 ) )
+		self.camera = Camera( ( 100 , 250 , -150 ) , ( 100 , 200 , 100 ) , ( 0 , 1 , 0 ) )
 		self.plane  = Plane( (2,2) )
-		self.solid  = Solid( (1,1,1) , (10,10) )
+		self.solid  = Solid( (-150,-150,-150) , (150,150,150) , (100,100) )
 		self.robot  = Robot( robot_files )
+		self.parser = Parser( 'data/t1.k16' , (150,150,150) )
+
+		self.solid.set_cut( self.parser.next() )
 
 		self.x = 0.0
 
 		self.last_time = timer()
+		self.ntime = int(self.last_time) + 1
 
 		self.plane_alpha = 65.0 / 180.0 * m.pi
 
@@ -75,9 +80,10 @@ class Scene :
 		self._draw_scene()
 
 		self.robot.update( dt )
-		self.solid.next_cut()
 
-#        print dt
+		if self.time > self.ntime :
+			self.solid.next_cut( self.parser.next() )
+			self.ntime = self.time + .05
 
 		self.x+=dt*.3
 
@@ -167,5 +173,5 @@ class Scene :
 		self.camera.rot( *map( lambda x : -x*.2 , df ) )
 
 	def key_pressed( self , mv ) :
-		self.camera.move( *map( lambda x : x*.25 , mv ) )
+		self.camera.move( *map( lambda x : x*25 , mv ) )
 
