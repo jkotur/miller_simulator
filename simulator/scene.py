@@ -29,9 +29,9 @@ class Scene :
 		self.far = far
 		self.ratio = ratio
 
-		self.camera = Camera( ( 100 , 250 , -150 ) , ( 100 , 200 , 100 ) , ( 0 , 1 , 0 ) )
+		self.camera = Camera( ( 150 , 550 , -50 ) , ( 150 , 300 , 100 ) , ( 0 , 1 , 0 ) )
 		self.plane  = Plane( (2,2) )
-		self.solid  = Solid( (-150,-150,-150) , (150,150,150) , (300,300) )
+		self.solid  = Solid( (-150,-150,-150) , (150,150,150) , (1000,1000) )
 		self.robot  = Robot( robot_files )
 		self.parser = Parser( 'data/t1.k16' , (150,150,150) )
 
