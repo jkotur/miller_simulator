@@ -29,11 +29,14 @@ class Scene :
 		self.far = far
 		self.ratio = ratio
 
+		self.running = False
+		self.speed = .5
+
 		self.camera = Camera( ( 150 , 550 , -50 ) , ( 150 , 300 , 100 ) , ( 0 , 1 , 0 ) )
 		self.plane  = Plane( (2,2) )
-		self.solid  = Solid( (-150,-150,-150) , (150,150,150) , (1000,1000) )
+		self.solid  = Solid( (-150,-150,-150) , (150,150,150) , (100,100) )
 		self.robot  = Robot( robot_files )
-		self.parser = Parser( 'data/t1.k16' , (150,150,150) )
+		self.load_path( 'data/t1.k16' )
 
 		self.solid.set_cut( self.parser.next() )
 
@@ -45,6 +48,9 @@ class Scene :
 		self.plane_alpha = 65.0 / 180.0 * m.pi
 
 		self._make_plane_matrix()
+
+	def set_speed( self , s ) :
+		self.speed = s
 
 	def _make_plane_matrix( self ) :
 		r = tr.rotation_matrix( self.plane_alpha , (0,0,1) )
@@ -81,9 +87,9 @@ class Scene :
 
 		self.robot.update( dt )
 
-		if self.time > self.ntime :
+		if self.running and self.time > self.ntime :
 			self.solid.next_cut( self.parser.next() )
-			self.ntime = self.time + .05
+			self.ntime = self.time + self.speed
 
 		self.x+=dt*.3
 
@@ -93,7 +99,7 @@ class Scene :
 		pos = np.dot( self.m , np.array( [ m.sin(self.x*7)*m.cos(self.x/3.0) , 0 , m.cos(self.x*5) , 1 ] ) )
 		nrm = np.dot( self.m , np.array( [      0        ,-1 ,      0        , 0 ] ) )
 
-		self.robot.resolve( pos , nrm )
+#        self.robot.resolve( pos , nrm )
 
 		glPushMatrix();
 		glScalef(100,100,100)
@@ -108,7 +114,7 @@ class Scene :
 
 		glColorMask(0,0,0,0);
 		glFrontFace(GL_CCW);
-		self.plane.draw( self.m )
+#        self.plane.draw( self.m )
 
 		glEnable(GL_DEPTH_TEST)
 
@@ -122,7 +128,7 @@ class Scene :
 		glMultTransposeMatrixf( self.im )
 
 		glFrontFace(GL_CW);
-		self.robot.draw()
+#        self.robot.draw()
 
 		glPopMatrix();
 		glFrontFace(GL_CCW);
@@ -134,11 +140,11 @@ class Scene :
 
 		glColor4f(.7,.7,.7,.85)
 
-		self.plane.draw( self.m )
+#        self.plane.draw( self.m )
 
 		glDisable( GL_BLEND )
 
-		self.robot.draw()
+#        self.robot.draw()
 		
 		glPopMatrix()
 
@@ -180,4 +186,40 @@ class Scene :
 
 	def key_pressed( self , mv ) :
 		self.camera.move( *map( lambda x : x*25 , mv ) )
+
+	def set_flat_drill( self , s ) :
+		self.solid.set_flat_drill( s )
+
+	def set_round_drill( self , s ) :
+		self.solid.set_round_drill( s )
+
+	def sim_run( self ) :
+		self.running = True
+
+	def sim_stop( self ) :
+		self.running = False
+
+	def reset( self ) :
+		self.parser.set_off( self.solid.newbeg )
+		self.parser.reset()
+		self.solid.reset()
+		self.reset_drill( self.parser.get_drill() )
+		return self.parser.get_drill() 
+
+	def load_path( self , filename ) :
+		self.parser = Parser( filename , self.solid.newbeg )
+		self.reset_drill( self.parser.get_drill() )
+		return self.parser.get_drill() 
+	
+	def reset_drill( self , drill ) :
+		if drill[0] == Parser.FLAT :
+			self.solid.set_flat_drill( drill[1] )
+		elif drill[0] == Parser.ROUND :
+			self.solid.set_round_drill( drill[1] )
+
+	def set_precision( self , prec ) :
+		self.solid.set_prec( (prec,prec) )
+
+	def set_size( self , beg , end ) :
+		self.solid.set_size( beg , end )
 

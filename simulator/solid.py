@@ -22,27 +22,30 @@ class Solid :
 	def __init__( self , beg , end , prec ) :
 		self.gdata = 0
 		
-		self.beg  = beg
+		self.newbeg = beg
+		self.newend = end
+		self.newprec = self.prec = prec
+
 		self.size = map( op.sub , end , beg )
-		self.prec = prec
 
-		print beg , end , self.size
+	def reset( self ) :
+		self.pos = None
 
-		self.gen_hdata()
+		self.prec = self.newprec
+		self.size = map( op.sub , self.newend , self.newbeg )
 
-		self.set_round_drill( 16 )
+		self.gen_data()
 
 	def gen_data( self ) :
 		self.gen_hdata()
 		self.gen_gdata()
 
-	def set_size( self , size ) :
-		self.size = size
-		self.gen_data()
+	def set_size( self, beg , end ) :
+		self.newbeg = beg
+		self.newend = end
 
 	def set_prec( self , prec ) :
-		self.prec = prec
-		self.gen_data()
+		self.newprec = prec
 
 	def get_triangles_count( self ) :
 		return self.prec[0] * self.prec[1] * 3 * 2
@@ -54,7 +57,7 @@ class Solid :
 		return self.get_buff_len() * sizeOfFloat 
 
 	def get_scale( self ) :
-		return float(self.size[0]) / self.prec[0] , float(self.size[1]) / self.prec[1]
+		return float(self.size[0]) / self.prec[0] , float(self.size[2]) / self.prec[1]
 
 	def gen_hdata( self ) :
 		self.hdata = np.zeros( (2,self.prec[0], self.prec[1], 3, 3) , np.float32 )
@@ -64,25 +67,25 @@ class Solid :
 		for x in xrange(self.prec[0]-1) :
 			for y in xrange(self.prec[1]-1) :
 				self.hdata[0,x,y,0,0] = x * sx
-				self.hdata[0,x,y,0,1] = self.size[2]
+				self.hdata[0,x,y,0,1] = self.size[1]
 				self.hdata[0,x,y,0,2] = y * sy
 				self.hdata[0,x,y,1,0] = (x+1) * sx
-				self.hdata[0,x,y,1,1] = self.size[2]
+				self.hdata[0,x,y,1,1] = self.size[1]
 				self.hdata[0,x,y,1,2] = y * sy
 				self.hdata[0,x,y,2,0] = x * sx
-				self.hdata[0,x,y,2,1] = self.size[2]
+				self.hdata[0,x,y,2,1] = self.size[1]
 				self.hdata[0,x,y,2,2] = (y+1) * sy
 
 		for x in xrange(1,self.prec[0]) :
 			for y in xrange(1,self.prec[1]) :
 				self.hdata[1,x-1,y-1,0,0] = x * sx
-				self.hdata[1,x-1,y-1,0,1] = self.size[2]
+				self.hdata[1,x-1,y-1,0,1] = self.size[1]
 				self.hdata[1,x-1,y-1,0,2] = y * sy
 				self.hdata[1,x-1,y-1,1,0] = (x-1) * sx
-				self.hdata[1,x-1,y-1,1,1] = self.size[2]
+				self.hdata[1,x-1,y-1,1,1] = self.size[1]
 				self.hdata[1,x-1,y-1,1,2] = y * sy
 				self.hdata[1,x-1,y-1,2,0] = x * sx
-				self.hdata[1,x-1,y-1,2,1] = self.size[2]
+				self.hdata[1,x-1,y-1,2,1] = self.size[1]
 				self.hdata[1,x-1,y-1,2,2] = (y-1) * sy
 
 	def gen_gdata( self ) :
@@ -98,17 +101,20 @@ class Solid :
 		glBindBuffer( GL_ARRAY_BUFFER , 0 )
 
 	def gfx_init( self ) :
-		self.gen_gdata()
 		self.cuda_init()
 
 	def draw( self ) :
 		if not self.gdata : return
 
-#        glDisable( GL_CULL_FACE )
+		glDisable( GL_CULL_FACE )
+
+		glPushMatrix()
 
 		glFrontFace(GL_CW);
 
 		glColor3f( .5 , .5 , .5 )
+
+		glTranslatef( *self.newbeg )
 
 		glEnableClientState( GL_VERTEX_ARRAY )
 		glEnableClientState( GL_NORMAL_ARRAY )
@@ -129,9 +135,7 @@ class Solid :
 		glDisableClientState( GL_NORMAL_ARRAY )
 #        glDisableClientState( GL_COLOR_ARRAY )
 
-#        glEnable(GL_LIGHTING)
-
-#        glEnable( GL_CULL_FACE )
+		glPopMatrix()
 
 	def cuda_init( self ) :
 		mod = cuda_driver.module_from_file( 'solid_kernel.cubin' )
@@ -143,15 +147,12 @@ class Solid :
 		self.pos = pos
 
 	def next_cut( self , pos ) :
-		if not self.gdata or not pos :
+		if not self.gdata or not self.pos or not pos :
 			self.pos = pos
 			return
 
 		sx , sy = self.get_scale()
 		nx , ny = self.hdrill.shape
-
-		grid = map( int , ( m.ceil(nx/22.0) , m.ceil(ny/22.0) ) )
-		block = ( min(nx,22) , min(ny,22) , 1 )
 
 		cdata = cuda_gl.BufferObject( long( self.gdata ) )
 		norms = cuda_gl.BufferObject( long( self.normals) )
@@ -161,15 +162,15 @@ class Solid :
 		dx = pos[0] - self.pos[0]
 		dz = pos[2] - self.pos[2]
 
-		print np.array(self.pos) , ' -> ' , np.array(pos)
-		print np.array(self.pos) / sx , ' -> ' , np.array(pos) / sy
-		print ( dx , dz )
+#        print np.array(self.pos) , ' -> ' , np.array(pos)
+#        print np.array(self.pos) / sx , ' -> ' , np.array(pos) / sy
+#        print ( dx , dz )
 
 		#
 		# perform one cut
 		#
 		if dx == 0.0 and dz == 0.0 :
-			self.cut.prepared_call( grid , block ,
+			self.cut.prepared_call( self.grid , self.block ,
 					hmap.device_ptr() ,
 					nmap.device_ptr() ,
 					self.cdrill ,
@@ -191,8 +192,8 @@ class Solid :
 			dy = (pos[1] - self.pos[1]) / float(dx)
 			dx = m.copysign( 1 , dx )
 
-			print 'c' , x , y , z
-			print 'd' , dx , dy , dz 
+#            print 'c' , x , y , z
+#            print 'd' , dx , dy , dz 
 
 			while True :
 				if dx < 0 :
@@ -200,10 +201,10 @@ class Solid :
 				else :
 					if x >= ex : break
 
-				print '1',x , y , z
-				print '2',x * sx , y , z
-				print '3',np.int32( x ) , np.float32(y) , np.int32( z / float(sy) + .5 )
-				self.cut.prepared_call( grid , block ,
+#                print '1',x , y , z
+#                print '2',x * sx , y , z
+#                print '3',np.int32( x ) , np.float32(y) , np.int32( z / float(sy) + .5 )
+				self.cut.prepared_call( self.grid , self.block ,
 						hmap.device_ptr() ,
 						nmap.device_ptr() ,
 						self.cdrill ,
@@ -227,8 +228,8 @@ class Solid :
 			dy = (pos[1] - self.pos[1]) / float(dz)
 			dz = m.copysign( 1 , dz )
 
-			print 'c' , x , y , z
-			print 'd' , dx , dy , dz 
+#            print 'c' , x , y , z
+#            print 'd' , dx , dy , dz 
 
 			while True :
 				if dz < 0 :
@@ -236,7 +237,7 @@ class Solid :
 				else :
 					if z >= ez : break
 
-				self.cut.prepared_call( grid , block ,
+				self.cut.prepared_call( self.grid , self.block ,
 						hmap.device_ptr() ,
 						nmap.device_ptr() ,
 						self.cdrill ,
@@ -266,8 +267,23 @@ class Solid :
 		print nx , ny
 
 		self.hdrill = np.zeros( (nx,ny) , np.float32 )
+
+		size /= 2.0
+		for x in range(nx) :
+			for y in range(ny) :
+				fx = (x-int(nx/2+.5)) * sx
+				fy = (y-int(ny/2+.5)) * sy 
+				ts = size*size - fx*fx - fy*fy
+				self.hdrill[x,y] = 0 if ts > 0 else 1
+
 		self.cdrill = cuda_driver.mem_alloc( self.hdrill.nbytes )
 		cuda_driver.memcpy_htod( self.cdrill , self.hdrill )
+
+		self.grid = map( int , ( m.ceil(nx/22.0) , m.ceil(ny/22.0) ) )
+		self.block = ( min(nx,22) , min(ny,22) , 1 )
+
+		print self.grid 
+		print self.block
 
 	def set_round_drill( self , size ) :
 		sx , sy = self.get_scale()
@@ -281,14 +297,20 @@ class Solid :
 		self.hdrill = np.zeros( (nx,ny) , np.float32 )
 
 		size /= 2.0
-
 		for x in range(nx) :
 			for y in range(ny) :
 				fx = (x-int(nx/2+.5)) * sx
-				fy = (y-int(nx/2+.5)) * sy 
+				fy = (y-int(ny/2+.5)) * sy 
 				ts = size*size - fx*fx - fy*fy
-				self.hdrill[x,y] = -m.sqrt( ts ) if ts > 0 else 0
+				self.hdrill[x,y] = -m.sqrt( ts ) if ts > 0 else 1
 
 		self.cdrill = cuda_driver.mem_alloc( self.hdrill.nbytes )
 		cuda_driver.memcpy_htod( self.cdrill , self.hdrill )
+
+		self.grid = map( int , ( m.ceil(nx/22.0) , m.ceil(ny/22.0) ) )
+		self.block = ( min(nx,22) , min(ny,22) , 1 )
+
+		print self.grid 
+		print self.block
+
 

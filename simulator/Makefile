@@ -1,6 +1,6 @@
 
 run: csparks.so solid_kernel.cubin
-	python puma.py 
+	python c3sim.py 
 
 csparks.so: sparks/csparks.pyx
 	cd sparks ; $(MAKE) $(MFLAGS)

@@ -11,8 +11,9 @@ from OpenGL.GL import *
 from glwidget import GLDrawingArea
 
 from scene import Scene
+from parser import Parser
 
-ui_file = "puma.ui"
+ui_file = "c3sim.ui"
 
 meshes = [ 'data/mesh{0}.mesh'.format(i) for i in range(1,7) ]
 
@@ -43,10 +44,22 @@ class App(object):
 		self.drawing_area.set_size_request(640,480)
 
 		builder.get_object("vbox1").pack_start(self.drawing_area)
+		self.tb_run = builder.get_object("tb_run")
+		self.sp_xb = builder.get_object("sp_xb")
+		self.sp_xe = builder.get_object("sp_xe")
+		self.sp_yb = builder.get_object("sp_yb")
+		self.sp_ye = builder.get_object("sp_ye")
+		self.sp_zb = builder.get_object("sp_zb")
+		self.sp_ze = builder.get_object("sp_ze")
+
+		self.sp_ms = builder.get_object("sp_miller_size")
+		self.cb_m  = builder.get_object("cb_miller")
 
 		win_main = builder.get_object("win_main")
 
 		win_main.set_events( gtk.gdk.KEY_PRESS_MASK | gtk.gdk.KEY_RELEASE_MASK )
+
+		self.nosetdrill = False
 
 		win_main.connect('key-press-event'  , self._on_key_pressed  )
 		win_main.connect('key-release-event', self._on_key_released )
@@ -58,11 +71,11 @@ class App(object):
 		ratio = float(width)/float(height)
 
 		self.scene = Scene( self.fov , ratio , self.near , self.far , meshes )
+		self.scene.set_speed( builder.get_object("sp_spd").get_value() )
+
 		self.drawing_area.add( self.scene )
 
 		builder.connect_signals(self)
-
-#        self.statbar = builder.get_object('statbar')
 
 		self.drawing_area.connect('motion_notify_event',self._on_mouse_motion)
 		self.drawing_area.connect('button_press_event',self._on_button_pressed)
@@ -131,14 +144,47 @@ class App(object):
 		self.drawing_area.queue_draw()
 		return any(self.move)
 
+	def on_run_pause( self , wdg , data =None ) :
+		if self.scene.running :
+			self.scene.sim_stop()
+		else :
+			self.scene.sim_run()
+
+	def on_reset( self , wdg , data=None ) :
+		drill = self.scene.reset()
+		self.tb_run.set_active(False)
+		self.set_drill( drill )
+
+	def on_load( self , wdg , data=None ) :
+		self.set_drill( self.scene.load_path( wdg.get_filename() ) )
+
+	def set_drill( self , drill ) :
+		self.nosetdrill = True
+		print drill
+		self.cb_m.set_active( drill[0] )
+		self.sp_ms.set_value( drill[1] )
+		self.nosetdrill = False
+
+	def on_speed_changed( self , wdg , data=None ) :
+		self.scene.set_speed( wdg.get_value() )
+
+	def on_prec_changed( self , wdg , data=None ) :
+		self.scene.set_precision( wdg.get_value_as_int() )
+
+	def on_size_changed( self , wdg , data=None ) :
+		self.scene.set_size(
+				( self.sp_xb.get_value()
+				, self.sp_yb.get_value()
+				, self.sp_zb.get_value() ) ,
+				( self.sp_xe.get_value() 
+				, self.sp_ye.get_value() 
+				, self.sp_ze.get_value() ) )
+
+	def on_miller_changed( self , wdg , data=None ) :
+		if not self.nosetdrill :
+			self.scene.reset_drill( (Parser.FLAT if self.cb_m.get_active() == 0 else Parser.ROUND , self.sp_ms.get_value_as_int() ) )
 
 	def init_glext(self):
-		# Query the OpenGL extension version.
-#        print "OpenGL extension version - %d.%d\n" % gtk.gdkgl.query_version()
-
-		# Configure OpenGL framebuffer.
-		# Try to get a double-buffered framebuffer configuration,
-		# if not successful then try to get a single-buffered one.
 		display_mode = (
 				gtk.gdkgl.MODE_RGB    |
 				gtk.gdkgl.MODE_DEPTH  |
@@ -149,15 +195,6 @@ class App(object):
 		except gtk.gdkgl.NoMatches:
 			display_mode &= ~gtk.gdkgl.MODE_DOUBLE
 			glconfig = gtk.gdkgl.Config(mode=display_mode)
-
-#        print "is RGBA:",                 glconfig.is_rgba()
-#        print "is double-buffered:",      glconfig.is_double_buffered()
-#        print "is stereo:",               glconfig.is_stereo()
-#        print "has alpha:",               glconfig.has_alpha()
-#        print "has depth buffer:",        glconfig.has_depth_buffer()
-#        print "has stencil buffer:",      glconfig.has_stencil_buffer()
-#        print "has accumulation buffer:", glconfig.has_accum_buffer()
-#        print
 
 		return glconfig
 
