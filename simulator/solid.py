@@ -37,7 +37,6 @@ class Solid :
 		self.gen_data()
 
 	def gen_data( self ) :
-		self.gen_hdata()
 		self.gen_gdata()
 
 	def set_size( self, beg , end ) :
@@ -56,49 +55,50 @@ class Solid :
 	def get_buff_bytes( self ) :
 		return self.get_buff_len() * sizeOfFloat 
 
+	def get_prec( self ) :
+		return self.prec[0] , self.prec[1]
 	def get_scale( self ) :
 		return float(self.size[0]) / self.prec[0] , float(self.size[2]) / self.prec[1]
-
-	def gen_hdata( self ) :
-		self.hdata = np.zeros( (2,self.prec[0], self.prec[1], 3, 3) , np.float32 )
-
-		sx , sy = self.get_scale()
-
-		for x in xrange(self.prec[0]-1) :
-			for y in xrange(self.prec[1]-1) :
-				self.hdata[0,x,y,0,0] = x * sx
-				self.hdata[0,x,y,0,1] = self.size[1]
-				self.hdata[0,x,y,0,2] = y * sy
-				self.hdata[0,x,y,1,0] = (x+1) * sx
-				self.hdata[0,x,y,1,1] = self.size[1]
-				self.hdata[0,x,y,1,2] = y * sy
-				self.hdata[0,x,y,2,0] = x * sx
-				self.hdata[0,x,y,2,1] = self.size[1]
-				self.hdata[0,x,y,2,2] = (y+1) * sy
-
-		for x in xrange(1,self.prec[0]) :
-			for y in xrange(1,self.prec[1]) :
-				self.hdata[1,x-1,y-1,0,0] = x * sx
-				self.hdata[1,x-1,y-1,0,1] = self.size[1]
-				self.hdata[1,x-1,y-1,0,2] = y * sy
-				self.hdata[1,x-1,y-1,1,0] = (x-1) * sx
-				self.hdata[1,x-1,y-1,1,1] = self.size[1]
-				self.hdata[1,x-1,y-1,1,2] = y * sy
-				self.hdata[1,x-1,y-1,2,0] = x * sx
-				self.hdata[1,x-1,y-1,2,1] = self.size[1]
-				self.hdata[1,x-1,y-1,2,2] = (y-1) * sy
 
 	def gen_gdata( self ) :
 		if not self.gdata :
 			self.gdata , self.normals = glGenBuffers(2)
 
+		px , py = self.get_prec()
+		sx , sy = self.get_scale()
+
+		grid  = map( int , ( m.ceil(px/22.0) , m.ceil(py/22.0) ) ) 
+		block = ( min(px,22) , min(py,22) , 1 )
+
 		glBindBuffer( GL_ARRAY_BUFFER , self.gdata )
-		glBufferData( GL_ARRAY_BUFFER , self.get_buff_bytes() , self.hdata , GL_STREAM_DRAW )
+		glBufferData( GL_ARRAY_BUFFER , self.get_buff_bytes() , None , GL_STREAM_DRAW )
 		glBindBuffer( GL_ARRAY_BUFFER , 0 )
 
+		print grid , block
+
+		cdata = cuda_gl.BufferObject( long( self.gdata ) )
+		hmap = cdata.map()
+		self.fill_v.prepared_call( grid , block ,
+				hmap.device_ptr() ,
+				np.int32(px) , np.int32(py) ,
+				np.float32(self.size[1]) ,
+				np.float32(sx) , np.float32(sy) )
+		hmap.unmap()
+		cdata.unregister()
+
 		glBindBuffer( GL_ARRAY_BUFFER , self.normals )
-		glBufferData( GL_ARRAY_BUFFER , self.get_buff_bytes() , np.array( [0.0,1.0,0.0] * self.get_buff_len() , np.float32 )  , GL_STREAM_DRAW )
+		glBufferData( GL_ARRAY_BUFFER , self.get_buff_bytes() , None  , GL_STREAM_DRAW )
 		glBindBuffer( GL_ARRAY_BUFFER , 0 )
+
+		ndata = cuda_gl.BufferObject( long( self.normals ) )
+		nmap = ndata.map()
+		self.fill_n.prepared_call( grid , block ,
+				nmap.device_ptr() ,
+				np.int32(px) , np.int32(py) ,
+				np.float32(self.size[1]) ,
+				np.float32(sx) , np.float32(sy) )
+		nmap.unmap()
+		ndata.unregister()
 
 	def gfx_init( self ) :
 		self.cuda_init()
@@ -142,6 +142,12 @@ class Solid :
 
 		self.cut = mod.get_function("cut_x")
 		self.cut.prepare( "PPPifiiiii" )
+
+		self.fill_v = mod.get_function("fill_v")
+		self.fill_v.prepare( "Piifff")
+
+		self.fill_n = mod.get_function("fill_n")
+		self.fill_n.prepare( "Piifff")
 
 	def set_cut( self , pos ) :
 		self.pos = pos
@@ -312,5 +318,4 @@ class Solid :
 
 		print self.grid 
 		print self.block
-
 

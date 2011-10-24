@@ -32,7 +32,7 @@ class Scene :
 		self.running = False
 		self.speed = .5
 
-		self.camera = Camera( ( 150 , 550 , -50 ) , ( 150 , 300 , 100 ) , ( 0 , 1 , 0 ) )
+		self.camera = Camera( ( 0 , 500 , -150 ) , ( 0 , 100 , 0 ) , ( 0 , 1 , 0 ) )
 		self.plane  = Plane( (2,2) )
 		self.solid  = Solid( (-150,-150,-150) , (150,150,150) , (100,100) )
 		self.robot  = Robot( robot_files )
@@ -185,7 +185,7 @@ class Scene :
 		self.camera.rot( *map( lambda x : -x*.2 , df ) )
 
 	def key_pressed( self , mv ) :
-		self.camera.move( *map( lambda x : x*25 , mv ) )
+		self.camera.move( *map( lambda x : x*2.5 , mv ) )
 
 	def set_flat_drill( self , s ) :
 		self.solid.set_flat_drill( s )
