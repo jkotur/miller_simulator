@@ -1,5 +1,7 @@
 import sys
 
+import logging
+
 import pygtk
 pygtk.require('2.0')
 import gtk
@@ -188,6 +190,9 @@ class App(object):
 		if not self.nosetdrill :
 			self.scene.reset_drill( (Parser.FLAT if self.cb_m.get_active() == 0 else Parser.ROUND , self.sp_ms.get_value_as_int() ) )
 
+	def on_miller_length_changed( self , wdg , data=None ) :
+		self.scene.set_drill_len( wdg.get_value() )
+
 	def on_fast_cut( self , wdg , data=None ) :
 		self.scene.fast_cut( self.pbar )
 
@@ -212,6 +217,7 @@ class App(object):
 		gtk.main_quit()
 
 if __name__ == '__main__':
+	logging.basicConfig( filename = 'milling.log' , filemode = 'w+' , format = '%(asctime)-15s : %(message)s' , level = logging.INFO  )
 	app = App()
 	gtk.main()
 

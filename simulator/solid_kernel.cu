@@ -11,7 +11,7 @@
 
 extern "C" {
 
-__global__ void cut_x(float3 *hmap , float3 *nmap , float *drill , int bx , float by , int bz , int px , int py , int nx , int ny )
+__global__ void cut_x(float3 *hmap , float3 *nmap , float *drill , int bx , float by , int bz , int px , int py , int nx , int ny , float dh , int* err )
 {
 	unsigned int itx = threadIdx.x + blockIdx.x * blockDim.x;
 	unsigned int ity = threadIdx.y + blockIdx.y * blockDim.y;
@@ -27,46 +27,60 @@ __global__ void cut_x(float3 *hmap , float3 *nmap , float *drill , int bx , floa
 	if( drill[idd] > 0.0 ) return;
 	float h = by + drill[idd];
 
+	if( h < 0.0f ) *err |= 1;
+
 	float3 n;
 	int id;
 
 	id = XY_TO_GL_01( idx , idy , px , py );
+	if( hmap[id].y > h+dh ) *err |= 2;
 	if( hmap[id].y > h ) {
+		*err |= 4;
 		hmap[id].y = h;
 		n = cross( hmap[id] - hmap[id+1] , hmap[id] - hmap[id+2] );
 		nmap[id] = nmap[id+1] = nmap[id+2] = normalize(-n);
 	}
 
 	id = XY_TO_GL_02( idx , idy , px , py );
+	if( hmap[id].y > h+dh ) *err |= 2;
 	if( hmap[id].y > h ) {
+		*err |= 4;
 		hmap[id].y = h;
 		n = cross( hmap[id-1] - hmap[id] , hmap[id-1] - hmap[id+1] );
 		nmap[id-1] = nmap[id] = nmap[id+1] = normalize(-n);
 	}
 
 	id = XY_TO_GL_03( idx , idy , px , py );
+	if( hmap[id].y > h+dh ) *err |= 2;
 	if( hmap[id].y > h ) {
+		*err |= 4;
 		hmap[id].y = h;
 		n = cross( hmap[id-2] - hmap[id-1] , hmap[id-2] - hmap[id] );
 		nmap[id-2] = nmap[id-1] = nmap[id] = normalize(-n);
 	}
 
 	id = XY_TO_GL_11( idx , idy , px , py );
+	if( hmap[id].y > h+dh ) *err |= 2;
 	if( hmap[id].y > h ) {
+		*err |= 4;
 		hmap[id].y = h;
 		n = cross( hmap[id] - hmap[id+1] , hmap[id] - hmap[id+2] );
 		nmap[id] = nmap[id+1] = nmap[id+2] = normalize(-n);
 	}
 
 	id = XY_TO_GL_12( idx , idy , px , py );
+	if( hmap[id].y > h+dh ) *err |= 2;
 	if( hmap[id].y > h ) {
+		*err |= 4;
 		hmap[id].y = h;
 		n = cross( hmap[id-1] - hmap[id] , hmap[id-1] - hmap[id+1] );
 		nmap[id-1] = nmap[id] = nmap[id+1] = normalize(-n);
 	}
 
 	id = XY_TO_GL_13( idx , idy , px , py );
+	if( hmap[id].y > h+dh ) *err |= 2;
 	if( hmap[id].y > h ) {
+		*err |= 4;
 		hmap[id].y = h;
 		n = cross( hmap[id-2] - hmap[id-1] , hmap[id-2] - hmap[id] );
 		nmap[id-2] = nmap[id-1] = nmap[id] = normalize(-n);

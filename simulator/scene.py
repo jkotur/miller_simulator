@@ -229,3 +229,6 @@ class Scene :
 	def set_size( self , beg , end ) :
 		self.solid.set_size( beg , end )
 
+	def set_drill_len( self , l ) :
+		self.solid.set_drill_len( l )
+

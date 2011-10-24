@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 import math as m
 import numpy as np
@@ -5,6 +6,8 @@ import operator as op
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
+
+import logging
 
 import pycuda.autoinit
 import pycuda.driver as cuda_driver
@@ -25,6 +28,7 @@ class Solid :
 		self.newbeg = beg
 		self.newend = end
 		self.newprec = self.prec = prec
+		self.drilllen = 100
 
 		self.size = map( op.sub , end , beg )
 
@@ -45,6 +49,9 @@ class Solid :
 
 	def set_prec( self , prec ) :
 		self.newprec = prec
+
+	def set_drill_len( self , l ) :
+		self.drilllen = l
 
 	def get_triangles_count( self ) :
 		return self.prec[0] * self.prec[1] * 3 * 2
@@ -138,8 +145,10 @@ class Solid :
 	def cuda_init( self ) :
 		mod = cuda_driver.module_from_file( 'solid_kernel.cubin' )
 
+		self.cerr = cuda_driver.mem_alloc( 4 )
+
 		self.cut = mod.get_function("cut_x")
-		self.cut.prepare( "PPPifiiiii" )
+		self.cut.prepare( "PPPifiiiiifP" )
 
 		self.fill_v = mod.get_function("fill_v")
 		self.fill_v.prepare( "Piifff")
@@ -155,6 +164,11 @@ class Solid :
 			self.pos = pos
 			return
 
+		log = logging.getLogger('miller')
+
+		if pos[1] < self.newbeg[1] :
+			self.warning('cutting under block')
+
 		sx , sy = self.get_scale()
 		nx , ny = self.hdrill.shape
 
@@ -166,21 +180,25 @@ class Solid :
 		dx = pos[0] - self.pos[0]
 		dz = pos[2] - self.pos[2]
 
-#        print np.array(self.pos) , ' -> ' , np.array(pos)
+#                print np.array(self.pos) , ' -> ' , np.array(pos)
 #        print np.array(self.pos) / sx , ' -> ' , np.array(pos) / sy
 #        print ( dx , dz )
 
+		cuda_driver.memcpy_htod( self.cerr , np.int32(0) )
+		
 		#
 		# perform one cut
 		#
 		if dx == 0.0 and dz == 0.0 :
+			if pos[1] < pos[2] : log.warning( 'vertical mill')
 			self.cut.prepared_call( self.grid , self.block ,
 					hmap.device_ptr() ,
 					nmap.device_ptr() ,
 					self.cdrill ,
 					np.int32( pos[0] / sx + .5 ) , np.float32(pos[1]) , np.int32( pos[2] / sy + .5 ) ,
 					np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
-					np.int32(nx) , np.int32(ny) )
+					np.int32(nx) , np.int32(ny) ,
+					np.float32(self.drilllen) , self.cerr )
 
 		#
 		# cutting by x axis
@@ -214,7 +232,8 @@ class Solid :
 						self.cdrill ,
 						np.int32(x) , np.float32(y) , np.int32( z / float(sy) + .5 ) ,
 						np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
-						np.int32(nx) , np.int32(ny) )
+						np.int32(nx) , np.int32(ny) ,
+						np.float32(self.drilllen) , self.cerr )
 				x += dx 
 				y += dy
 				z += dz
@@ -247,12 +266,11 @@ class Solid :
 						self.cdrill ,
 						np.int32( x / float(sx) + .5 ) , np.float32(y) , np.int32( z ) ,
 						np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
-						np.int32(nx) , np.int32(ny) )
+						np.int32(nx) , np.int32(ny) ,
+						np.float32(self.drilllen) , self.cerr )
 				x += dx 
 				y += dy
 				z += dz
-
-		self.pos = pos
 
 		cuda_driver.Context.synchronize()
 
@@ -261,9 +279,26 @@ class Solid :
 		cdata.unregister()
 		norms.unregister()
 
+		err = np.array( [0] , np.int32 )
+		cuda_driver.memcpy_dtoh( err , self.cerr )
+		self.parse_err( 0 , err[0] , (pos[1] < self.pos[1] and self.drillflat) )
+
+		self.pos = pos
+
+	def parse_err( self , n , err , flathole ) :
+		log = logging.getLogger('miller')
+		if err & 1 :
+			log.warning(u"Skrawanie poniżej poziomu zero")
+		if err & 2 :
+			log.warning(u"Skrawanie częścią nieskrawającą")
+		if err & 4 and flathole :
+			log.warning(u"Wiercenie dziury frezem płaskim")
+
 	def set_flat_drill( self , size ) :
 		sx , sy = self.get_scale()
 		nx , ny = int(size / sx + .5) , int(size / sy + .5)
+
+		self.drillflat = True
 
 		print 'Setting flat drill:'
 		print size
@@ -292,6 +327,8 @@ class Solid :
 	def set_round_drill( self , size ) :
 		sx , sy = self.get_scale()
 		nx , ny = int(size / sx + .5) , int(size / sy + .5)
+
+		self.drillflat = False
 
 		print 'Setting round drill:'
 		print size
