@@ -106,8 +106,6 @@ class Solid :
 	def draw( self ) :
 		if not self.gdata : return
 
-		glDisable( GL_CULL_FACE )
-
 		glPushMatrix()
 
 		glFrontFace(GL_CW);

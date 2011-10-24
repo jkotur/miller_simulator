@@ -55,6 +55,8 @@ class App(object):
 		self.sp_ms = builder.get_object("sp_miller_size")
 		self.cb_m  = builder.get_object("cb_miller")
 
+		self.pbar  = builder.get_object("pbar")
+
 		win_main = builder.get_object("win_main")
 
 		win_main.set_events( gtk.gdk.KEY_PRESS_MASK | gtk.gdk.KEY_RELEASE_MASK )
@@ -83,6 +85,8 @@ class App(object):
 		self.drawing_area.connect_after('expose_event',self._after_draw)
 
 		gtk.timeout_add( 1 , self._refresh )
+
+		self.pbar.set_visible(False)
 
 	def _refresh( self ) :
 		self.drawing_area.queue_draw()
@@ -183,6 +187,9 @@ class App(object):
 	def on_miller_changed( self , wdg , data=None ) :
 		if not self.nosetdrill :
 			self.scene.reset_drill( (Parser.FLAT if self.cb_m.get_active() == 0 else Parser.ROUND , self.sp_ms.get_value_as_int() ) )
+
+	def on_fast_cut( self , wdg , data=None ) :
+		self.scene.fast_cut( self.pbar )
 
 	def init_glext(self):
 		display_mode = (

@@ -17,6 +17,9 @@ class Parser :
 		with open(path) as f :
 			self.read_file(f)
 
+	def get_len( self ) :
+		return len(self.pos)
+
 	def get_drill( self ) :
 		return self.type , self.size
 

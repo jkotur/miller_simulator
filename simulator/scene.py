@@ -73,6 +73,12 @@ class Scene :
 
 		self.solid.gfx_init()
 
+	def fast_cut( self , pb ) :
+		while True :
+			n = self.parser.next()
+			if not n : break
+			self.solid.next_cut( n )
+
 	def draw( self ) :
 		self.time = timer()
 
