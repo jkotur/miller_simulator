@@ -167,7 +167,7 @@ class Solid :
 		log = logging.getLogger('miller')
 
 		if pos[1] < self.newbeg[1] :
-			self.warning('cutting under block')
+			log.warning('cutting under block')
 
 		sx , sy = self.get_scale()
 		nx , ny = self.hdrill.shape
@@ -180,7 +180,7 @@ class Solid :
 		dx = pos[0] - self.pos[0]
 		dz = pos[2] - self.pos[2]
 
-#                print np.array(self.pos) , ' -> ' , np.array(pos)
+#        print np.array(self.pos) , ' -> ' , np.array(pos)
 #        print np.array(self.pos) / sx , ' -> ' , np.array(pos) / sy
 #        print ( dx , dz )
 
@@ -190,6 +190,7 @@ class Solid :
 		# perform one cut
 		#
 		if dx == 0.0 and dz == 0.0 :
+#            print "0 cut!"
 			if pos[1] < pos[2] : log.warning( 'vertical mill')
 			self.cut.prepared_call( self.grid , self.block ,
 					hmap.device_ptr() ,
@@ -204,14 +205,15 @@ class Solid :
 		# cutting by x axis
 		#
 		elif m.fabs(dx) > m.fabs(dz) :
+#            print "x cut!"
 
 			x = np.  int32( float(self.pos[0]) / float(sx) )
 			ex= np.  int32( float(     pos[0]) / float(sx) )
 			y = np.float64( self.pos[1] )
 			z = np.float64( self.pos[2] )
 
-			dz = dz / float(ex - x)
-			dy = (pos[1] - self.pos[1]) / float(dx)
+			dz = dz / m.fabs(float(ex - x))
+			dy = (pos[1] - self.pos[1]) / m.fabs(float(dx))
 			dx = m.copysign( 1 , dx )
 
 #            print 'c' , x , y , z
@@ -242,13 +244,14 @@ class Solid :
 		# cutting by z axis
 		#
 		else :
+#            print "z cut!"
 			x = np.float64( self.pos[0] )
 			y = np.float64( self.pos[1] )
 			z = np.  int32( float(self.pos[2]) / float(sy) )
 			ez= np.  int32( float(     pos[2]) / float(sy) )
 
-			dx = dx / float(ez - z)
-			dy = (pos[1] - self.pos[1]) / float(dz)
+			dx = dx / m.fabs(float(ez - z))
+			dy = (pos[1] - self.pos[1]) / m.fabs(float(dz))
 			dz = m.copysign( 1 , dz )
 
 #            print 'c' , x , y , z
@@ -260,6 +263,9 @@ class Solid :
 				else :
 					if z >= ez : break
 
+#                print '1',x , y , z
+#                print '2',x , y , z * sy
+#                print '3',np.int32( x / float(sx) + .5 ) , np.float32(y) , np.int32( z )
 				self.cut.prepared_call( self.grid , self.block ,
 						hmap.device_ptr() ,
 						nmap.device_ptr() ,
