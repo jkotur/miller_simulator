@@ -38,7 +38,7 @@
   <object class="GtkAdjustment" id="adj_x_e">
     <property name="lower">-1000</property>
     <property name="upper">1000</property>
-    <property name="value">150</property>
+    <property name="value">200</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -52,21 +52,20 @@
   <object class="GtkAdjustment" id="adj_y_e">
     <property name="lower">-1000</property>
     <property name="upper">1000</property>
-    <property name="value">150</property>
+    <property name="value">100</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_z_b">
     <property name="lower">-1000</property>
     <property name="upper">1000</property>
-    <property name="value">-150</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_z_e">
     <property name="lower">-1000</property>
     <property name="upper">1000</property>
-    <property name="value">150</property>
+    <property name="value">200</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -364,12 +363,6 @@
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
                       <object class="GtkLabel" id="label99">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -396,6 +389,12 @@
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                   <packing>

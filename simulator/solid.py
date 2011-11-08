@@ -189,22 +189,22 @@ class Solid :
 		#
 		# perform one cut
 		#
-		if dx == 0.0 and dz == 0.0 :
-#            print "0 cut!"
-			if pos[1] < pos[2] : log.warning( 'vertical mill')
-			self.cut.prepared_call( self.grid , self.block ,
-					hmap.device_ptr() ,
-					nmap.device_ptr() ,
-					self.cdrill ,
-					np.int32( pos[0] / sx + .5 ) , np.float32(pos[1]) , np.int32( pos[2] / sy + .5 ) ,
-					np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
-					np.int32(nx) , np.int32(ny) ,
-					np.float32(self.drilllen) , self.cerr )
+#        if dx == 0.0 and dz == 0.0 :
+##            print "0 cut!"
+#            if pos[1] < pos[2] : log.warning( 'vertical mill')
+#            self.cut.prepared_call( self.grid , self.block ,
+#                    hmap.device_ptr() ,
+#                    nmap.device_ptr() ,
+#                    self.cdrill ,
+#                    np.int32( pos[0] / sx + .5 ) , np.float32(pos[1]) , np.int32( pos[2] / sy + .5 ) ,
+#                    np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
+#                    np.int32(nx) , np.int32(ny) ,
+#                    np.float32(self.drilllen) , self.cerr )
 
 		#
 		# cutting by x axis
 		#
-		elif m.fabs(dx) > m.fabs(dz) :
+		if m.fabs(dx) > m.fabs(dz) :
 #            print "x cut!"
 
 			x = np.  int32( float(self.pos[0]) / float(sx) )
@@ -212,8 +212,10 @@ class Solid :
 			y = np.float64( self.pos[1] )
 			z = np.float64( self.pos[2] )
 
+#            print 'a' , ex-x , dx  , pos[1] - self.pos[1]
+
 			dz = dz / m.fabs(float(ex - x))
-			dy = (pos[1] - self.pos[1]) / m.fabs(float(dx))
+			dy = (pos[1] - self.pos[1]) / m.fabs(float(ex-x))
 			dx = m.copysign( 1 , dx )
 
 #            print 'c' , x , y , z
@@ -251,7 +253,7 @@ class Solid :
 			ez= np.  int32( float(     pos[2]) / float(sy) )
 
 			dx = dx / m.fabs(float(ez - z))
-			dy = (pos[1] - self.pos[1]) / m.fabs(float(dz))
+			dy = (pos[1] - self.pos[1]) / m.fabs(float(ez-z))
 			dz = m.copysign( 1 , dz )
 
 #            print 'c' , x , y , z
