@@ -189,17 +189,17 @@ class Solid :
 		#
 		# perform one cut
 		#
-#        if dx == 0.0 and dz == 0.0 :
-##            print "0 cut!"
+		if dx == 0.0 and dz == 0.0 :
+#            print "0 cut!"
 #            if pos[1] < pos[2] : log.warning( 'vertical mill')
-#            self.cut.prepared_call( self.grid , self.block ,
-#                    hmap.device_ptr() ,
-#                    nmap.device_ptr() ,
-#                    self.cdrill ,
-#                    np.int32( pos[0] / sx + .5 ) , np.float32(pos[1]) , np.int32( pos[2] / sy + .5 ) ,
-#                    np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
-#                    np.int32(nx) , np.int32(ny) ,
-#                    np.float32(self.drilllen) , self.cerr )
+			self.cut.prepared_call( self.grid , self.block ,
+					hmap.device_ptr() ,
+					nmap.device_ptr() ,
+					self.cdrill ,
+					np.int32( pos[0] / sx + .5 ) , np.float32(pos[1]) , np.int32( pos[2] / sy + .5 ) ,
+					np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
+					np.int32(nx) , np.int32(ny) ,
+					np.float32(self.drilllen) , self.cerr )
 
 		#
 		# cutting by x axis
