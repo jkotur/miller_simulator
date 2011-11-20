@@ -18,8 +18,8 @@ __global__ void cut_x(float3 *hmap , float3 *nmap , float *drill , int bx , floa
 
 	if( itx >= nx || ity >= ny ) return;
 
-	int idx = bx + itx;
-	int idy = bz + ity;
+	int idx = bx + itx - nx/2.0;
+	int idy = bz + ity - ny/2.0;
 
 	if( idx < 0 || idy < 0 || idx >= px || idy >= py ) return;
 
