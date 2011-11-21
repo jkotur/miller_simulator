@@ -160,7 +160,9 @@ class Solid :
 		self.pos = pos
 
 	def next_cut( self , pos ) :
-		if not self.gdata or not self.pos or not pos :
+		if not pos :
+			return
+		if not self.gdata or not self.pos :
 			self.pos = pos
 			return
 
