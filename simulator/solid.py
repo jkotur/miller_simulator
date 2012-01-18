@@ -148,7 +148,7 @@ class Solid :
 		self.cerr = cuda_driver.mem_alloc( 4 )
 
 		self.cut = mod.get_function("cut_x")
-		self.cut.prepare( "PPPifiiiiifP" )
+		self.cut.prepare( "PPPifiiiiiffP" )
 
 		self.fill_v = mod.get_function("fill_v")
 		self.fill_v.prepare( "Piifff")
@@ -201,7 +201,8 @@ class Solid :
 					np.int32( pos[0] / sx + .5 ) , np.float32(pos[1]) , np.int32( pos[2] / sy + .5 ) ,
 					np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
 					np.int32(nx) , np.int32(ny) ,
-					np.float32(self.drilllen) , self.cerr )
+					np.float32(self.drilllen) , np.float32(self.drillrad) ,
+					self.cerr )
 
 		#
 		# cutting by x axis
@@ -239,7 +240,8 @@ class Solid :
 						np.int32(x) , np.float32(y) , np.int32( z / float(sy) + .5 ) ,
 						np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
 						np.int32(nx) , np.int32(ny) ,
-						np.float32(self.drilllen) , self.cerr )
+						np.float32(self.drilllen) , np.float32(self.drillrad) ,
+						self.cerr )
 				x += dx 
 				y += dy
 				z += dz
@@ -277,7 +279,8 @@ class Solid :
 						np.int32( x / float(sx) + .5 ) , np.float32(y) , np.int32( z ) ,
 						np.int32(self.prec[0]) , np.int32(self.prec[1]) ,
 						np.int32(nx) , np.int32(ny) ,
-						np.float32(self.drilllen) , self.cerr )
+						np.float32(self.drilllen) , np.float32(self.drillrad) ,
+						self.cerr )
 				x += dx 
 				y += dy
 				z += dz
@@ -323,7 +326,9 @@ class Solid :
 				fx = (x-int(nx/2+.5)) * sx
 				fy = (y-int(ny/2+.5)) * sy 
 				ts = size*size - fx*fx - fy*fy
-				self.hdrill[x,y] = 0 if ts > 0 else 1
+				self.hdrill[x,y] = 0 if ts > 0 else size*2
+
+		self.drillrad = size
 
 		self.cdrill = cuda_driver.mem_alloc( self.hdrill.nbytes )
 		cuda_driver.memcpy_htod( self.cdrill , self.hdrill )
@@ -353,7 +358,12 @@ class Solid :
 				fx = (x-int(nx/2+.5)) * sx
 				fy = (y-int(ny/2+.5)) * sy 
 				ts = size*size - fx*fx - fy*fy
-				self.hdrill[x,y] = -m.sqrt( ts ) if ts > 0 else 1
+				self.hdrill[x,y] = -m.sqrt( ts ) + size if ts > 0 else size*2
+
+		self.drillrad = size
+
+		print self.hdrill
+		print self.drillrad
 
 		self.cdrill = cuda_driver.mem_alloc( self.hdrill.nbytes )
 		cuda_driver.memcpy_htod( self.cdrill , self.hdrill )

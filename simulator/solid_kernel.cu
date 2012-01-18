@@ -11,7 +11,7 @@
 
 extern "C" {
 
-__global__ void cut_x(float3 *hmap , float3 *nmap , float *drill , int bx , float by , int bz , int px , int py , int nx , int ny , float dh , int* err )
+__global__ void cut_x(float3 *hmap , float3 *nmap , float *drill , int bx , float by , int bz , int px , int py , int nx , int ny , float dh , float dr , int* err )
 {
 	unsigned int itx = threadIdx.x + blockIdx.x * blockDim.x;
 	unsigned int ity = threadIdx.y + blockIdx.y * blockDim.y;
@@ -24,7 +24,7 @@ __global__ void cut_x(float3 *hmap , float3 *nmap , float *drill , int bx , floa
 	if( idx < 0 || idy < 0 || idx >= px || idy >= py ) return;
 
 	int idd = itx * ny + ity;
-	if( drill[idd] > 0.0 ) return;
+	if( drill[idd] > dr ) return;
 	float h = by + drill[idd];
 
 	if( h < 0.0f ) *err |= 1;

@@ -41,8 +41,33 @@ class Parser :
 
 	def read_file( self , f ) :
 		for l in f :
-			self.pos.append( map( np.float32 , re.match( "N\d+G01X(.*)Y(.*)Z(.*)" , l ).groups() ) )
-			self.pos[-1][1] , self.pos[-1][2] = self.pos[-1][2] , self.pos[-1][1]
+			p = [ 0 ] * 3
+			if not re.match( 'N\d+G01' , l ) :
+				continue
+			l = re.sub( 'N\d+G01' , '' , l )
+			lst = -1 
+			while len(l) > 2 :
+				if   l[0] == 'X' : new = 0
+				elif l[0] == 'Y' : new = 1
+				elif l[0] == 'Z' : new = 2
+
+				for i in range(lst+1,new) : p[i] = self.pos[-1][i]
+
+				r = r'[XYZ]([\d\.-]*)'
+#                print "l'%s' - %d" % ( l , len(l) )
+				m = re.match( r , l ).groups()[0]
+#                print "m'%s'" % m
+				p[new] = np.float32( m )
+				l = l[len(m)+1:]
+				lst = new
+
+			for i in range(lst+1,3) : p[i] = self.pos[-1][i]
+
+			self.pos.append(p)
+
+		for p in self.pos :
+			p[0] = -p[0]
+			p[1] , p[2] = p[2] , p[1]
 
 	def reset( self ) :
 		self.i = 0
